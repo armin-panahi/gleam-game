@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>GLEAM — پازل آبشار جواهرات</title>
+<meta name="description" content="گلیم؛ یک پازل مدرن آبشار جواهرات با حالت تک‌نفره و نبرد دونفره‌ی آفلاین.">
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#08090f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GLEAM">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="64x64" href="icons/favicon-64.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="aurora"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
+
+<div class="topbar">
+  <div class="brand">
+    <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="logoGrad" x1="4" y1="4" x2="44" y2="44" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stop-color="#7c5cff"/>
+          <stop offset="0.55" stop-color="#33e0ff"/>
+          <stop offset="1" stop-color="#ff5fa8"/>
+        </linearGradient>
+      </defs>
+      <path d="M24 3 L38 18 L27 45 L21 45 L10 18 Z" fill="url(#logoGrad)"/>
+      <path d="M24 3 L38 18 L24 21 Z" fill="#ffffff" fill-opacity="0.35"/>
+      <path d="M10 18 L24 21 L21 45 Z" fill="#ffffff" fill-opacity="0.15"/>
+      <path d="M24 3 L10 18 L24 21 Z" fill="#000000" fill-opacity="0.08"/>
+    </svg>
+    <div>
+      <div class="wordmark">GLEAM</div>
+      <div class="tagline">JEWEL CASCADE</div>
+    </div>
+  </div>
+  <div class="top-actions" id="top-actions-menu">
+    <button class="icon-btn" id="btn-sound" title="صدا">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
+    </button>
+  </div>
+</div>
+
+<!-- ================= MENU ================= -->
+<section id="menu" class="screen active">
+  <div class="hero">
+    <svg class="hero-logo" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="heroGrad" x1="4" y1="4" x2="44" y2="44" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stop-color="#7c5cff"/>
+          <stop offset="0.55" stop-color="#33e0ff"/>
+          <stop offset="1" stop-color="#ff5fa8"/>
+        </linearGradient>
+      </defs>
+      <path d="M24 3 L38 18 L27 45 L21 45 L10 18 Z" fill="url(#heroGrad)"/>
+      <path d="M24 3 L38 18 L24 21 Z" fill="#ffffff" fill-opacity="0.4"/>
+      <path d="M10 18 L24 21 L21 45 Z" fill="#ffffff" fill-opacity="0.18"/>
+    </svg>
+    <h1>GLEAM</h1>
+    <p class="subtitle">پازل مدرن آبشار جواهرات. ستون‌های سه‌تایی را بچین، رنگ‌های هم‌سان را در یک ردیف قرار بده تا بترکند و امتیاز بگیر — حالا با نبرد آفلاین دونفره روی یک صفحه‌کلید.</p>
+  </div>
+
+  <div class="mode-grid">
+    <div class="mode-card p1" id="btn-1p">
+      <div class="glow"></div>
+      <div class="icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg>
+      </div>
+      <span class="tag">SINGLE PLAYER</span>
+      <h3>تک‌نفره</h3>
+      <p>در چالش با خودت، رکورد امتیاز بزن و ببین چند مرحله جلو می‌ری.</p>
+    </div>
+    <div class="mode-card p2" id="btn-2p">
+      <div class="glow"></div>
+      <div class="icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </div>
+      <span class="tag">LOCAL VERSUS</span>
+      <h3>دونفره · آفلاین</h3>
+      <p>روی یک صفحه‌کلید نبرد کن؛ کومبوهای زنجیره‌ای، جواهر «سنگی» به چاه حریف پرت می‌کنند.</p>
+    </div>
+  </div>
+
+  <div class="diff-row" id="diff-row">
+    <div class="diff-chip" data-diff="easy">آسان</div>
+    <div class="diff-chip active" data-diff="normal">معمولی</div>
+    <div class="diff-chip" data-diff="hard">سخت</div>
+  </div>
+
+  <div class="controls-strip">
+    <div class="ctrl-group">
+      <span class="who">بازیکن ۱</span>
+      <div class="keys"><span class="key">←</span><span class="key">→</span><span class="key">↑</span><span class="key">↓</span><span class="key">Space</span></div>
+    </div>
+    <div class="ctrl-group">
+      <span class="who">بازیکن ۲</span>
+      <div class="keys"><span class="key">A</span><span class="key">D</span><span class="key">W</span><span class="key">S</span><span class="key">Shift</span></div>
+    </div>
+  </div>
+  <p class="hint-note"><b>نکته:</b> هر زنجیره‌ی ترکیبی دو مرحله‌ای یا بیشتر، چند جواهر سنگی به چاه حریف می‌فرستد — همان‌جا که فرود می‌آیند باید با یک ترکیب مجاور، آزادشان کنی.</p>
+
+  <div class="install-banner" id="install-banner">
+    <span>گلیم را به‌عنوان اپلیکیشن روی دستگاهت نصب کن — بدون مرورگر، تمام‌صفحه اجرا می‌شود.</span>
+    <button class="pill-btn primary" id="btn-install">نصب</button>
+  </div>
+
+  <footer class="credit">GLEAM — a modern homage to classic falling-jewel puzzles.</footer>
+</section>
+
+<!-- ================= GAME ================= -->
+<section id="game" class="screen">
+  <div class="boards-wrap" id="boards-wrap"></div>
+  <div class="mobile-controls" id="mobile-controls"></div>
+  <div class="top-actions" style="margin-top:6px;">
+    <button class="pill-btn" id="btn-pause">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+      توقف
+    </button>
+    <button class="pill-btn" id="btn-menu">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+      منو
+    </button>
+  </div>
+  <footer class="credit">GLEAM — a modern homage to classic falling-jewel puzzles.</footer>
+</section>
+
+<script src="app.js"></script>
+</body>
+</html>
