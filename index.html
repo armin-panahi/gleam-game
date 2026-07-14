@@ -23,7 +23,7 @@
 
 <div class="aurora"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
 
-<div class="topbar">
+<div class="topbar" id="topbar">
   <div class="brand">
     <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
@@ -43,7 +43,7 @@
       <div class="tagline">JEWEL CASCADE</div>
     </div>
   </div>
-  <div class="top-actions" id="top-actions-menu">
+  <div class="top-actions">
     <button class="icon-btn" id="btn-sound" title="صدا">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
     </button>
@@ -67,6 +67,10 @@
     </svg>
     <h1>GLEAM</h1>
     <p class="subtitle">پازل مدرن آبشار جواهرات. ستون‌های سه‌تایی را بچین، رنگ‌های هم‌سان را در یک ردیف قرار بده تا بترکند و امتیاز بگیر — حالا با نبرد آفلاین دونفره روی یک صفحه‌کلید.</p>
+    <div class="best-score-pill" id="best-score-pill">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M17 5h3a2 2 0 0 1-2 4M7 5H4a2 2 0 0 0 2 4"/></svg>
+      <span id="best-score-val">۰</span><span class="l">بهترین امتیاز</span>
+    </div>
   </div>
 
   <div class="mode-grid">
@@ -116,23 +120,48 @@
   <footer class="credit">GLEAM — a modern homage to classic falling-jewel puzzles.</footer>
 </section>
 
-<!-- ================= GAME ================= -->
+<!-- ================= GAME (fullscreen app-like stage) ================= -->
 <section id="game" class="screen">
-  <div class="boards-wrap" id="boards-wrap"></div>
-  <div class="mobile-controls" id="mobile-controls"></div>
-  <div class="top-actions" style="margin-top:6px;">
-    <button class="pill-btn" id="btn-pause">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-      توقف
+  <div class="game-hud">
+    <button class="icon-btn" id="btn-menu" title="بازگشت به منو">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
     </button>
-    <button class="pill-btn" id="btn-menu">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
-      منو
-    </button>
+    <div class="game-hud-brand">GLEAM</div>
+    <div class="hud-actions">
+      <button class="icon-btn" id="btn-fullscreen" title="تمام‌صفحه">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+      </button>
+      <button class="icon-btn" id="btn-sound-game" title="صدا">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
+      </button>
+      <button class="icon-btn" id="btn-pause" title="توقف">
+        <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+      </button>
+    </div>
   </div>
-  <footer class="credit">GLEAM — a modern homage to classic falling-jewel puzzles.</footer>
+
+  <div class="game-stage" id="game-stage">
+    <div class="boards-wrap" id="boards-wrap"></div>
+  </div>
+
+  <div class="landscape-hint" id="landscape-hint">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" transform="rotate(90 12 12)"/><path d="M12 18h.01"/></svg>
+    <p>برای تجربه‌ی بهتر، گوشی را عمودی نگه دار</p>
+    <button class="pill-btn" id="btn-dismiss-hint">متوجه شدم</button>
+  </div>
+
+  <div class="pause-modal" id="pause-modal">
+    <div class="pause-card">
+      <span class="tag">PAUSED</span>
+      <h2>بازی متوقف شد</h2>
+      <button class="pill-btn primary" id="btn-resume">ادامه‌ی بازی</button>
+      <button class="pill-btn" id="btn-restart-pause">شروع دوباره</button>
+      <button class="pill-btn" id="btn-menu-pause">بازگشت به منو</button>
+    </div>
+  </div>
 </section>
 
 <script src="app.js"></script>
 </body>
 </html>
+

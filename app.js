@@ -60,6 +60,15 @@ const Sound = {
   }
 };
 
+function vibrate(pattern){
+  if(navigator.vibrate){ try{ navigator.vibrate(pattern); }catch(e){} }
+}
+
+function faDigits(n){
+  const map = ['۰','۱','۲','۳','۴','۵','۶','۷','۸','۹'];
+  return String(n).replace(/[0-9]/g, d => map[d]);
+}
+
 /* ---------------------------------------------------------------------
    Gem palette & board constants
 --------------------------------------------------------------------- */
@@ -124,6 +133,7 @@ class Board{
     this.onNextChange = opts.onNextChange || function(){};
     this.onGameOver = opts.onGameOver || function(){};
     this.onLevelUp = opts.onLevelUp || function(){};
+    this.onCombo = opts.onCombo || function(){};
     this.opponent = null;
 
     this.cell = 34;
@@ -186,6 +196,7 @@ class Board{
     this.state = 'over';
     this.gameOver = true;
     Sound.gameOver();
+    vibrate([80,40,80,40,120]);
     this.onGameOver();
   }
 
@@ -313,6 +324,7 @@ class Board{
     this.resolveStep = 'match';
     this.resolveTimer = 0.05;
     Sound.lock();
+    vibrate(8);
   }
 
   updateResolving(dt){
@@ -383,8 +395,10 @@ class Board{
 
     this.jewels += count;
     const mult = this.chainCount;
-    this.score += count*10*mult;
+    const gained = count*10*mult;
+    this.score += gained;
     Sound.clear(this.chainCount);
+    vibrate(this.chainCount>=2 ? [25,15,25] : 12);
 
     const newLevel = 1 + Math.floor(this.jewels/24);
     if(newLevel !== this.level){
@@ -394,14 +408,16 @@ class Board{
     }
     this.onScoreChange();
 
+    if(this.chainCount>=2){
+      this.onCombo(this.chainCount, gained);
+      this.shakeTimer = 0.35;
+      this.frameEl.classList.add('shake');
+    }
+
     if(this.chainCount>=2 && this.opponent && !this.opponent.gameOver){
       const garbage = Math.min(6, Math.floor(this.chainCount*1.5)+Math.floor(count/6));
       this.opponent.pendingGarbage += garbage;
       Sound.garbage();
-    }
-    if(this.chainCount>=2){
-      this.shakeTimer = 0.35;
-      this.frameEl.classList.add('shake');
     }
   }
 
@@ -528,26 +544,61 @@ class Board{
   }
 }
 
-/* ---------------------------------------------------------------------
-   Game controller — screens, input, per-player DOM wiring
---------------------------------------------------------------------- */
+/* =========================================================================
+   Game controller — screens, layout, input, HUD wiring
+   ========================================================================= */
 const menuScreen = document.getElementById('menu');
 const gameScreen = document.getElementById('game');
+const gameStage = document.getElementById('game-stage');
 const boardsWrap = document.getElementById('boards-wrap');
-const mobileControls = document.getElementById('mobile-controls');
 const btnPause = document.getElementById('btn-pause');
 const btnMenu = document.getElementById('btn-menu');
 const btnSound = document.getElementById('btn-sound');
+const btnSoundGame = document.getElementById('btn-sound-game');
+const btnFullscreen = document.getElementById('btn-fullscreen');
+
+const pauseModal = document.getElementById('pause-modal');
+const btnResume = document.getElementById('btn-resume');
+const btnRestartPause = document.getElementById('btn-restart-pause');
+const btnMenuPause = document.getElementById('btn-menu-pause');
+
+const landscapeHint = document.getElementById('landscape-hint');
+const btnDismissHint = document.getElementById('btn-dismiss-hint');
+
+const bestScoreVal = document.getElementById('best-score-val');
 
 const ICON_MUTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>';
 const ICON_SOUND = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>';
+const ICON_EXPAND = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>';
+const ICON_COMPRESS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v3a2 2 0 0 1-2 2H4M21 8h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 1 2 2v3M16 21v-3a2 2 0 0 1 2-2h3"/></svg>';
 
-function refreshSoundIcon(){
-  btnSound.innerHTML = Sound.muted ? ICON_MUTE : ICON_SOUND;
+function refreshSoundIcons(){
+  const html = Sound.muted ? ICON_MUTE : ICON_SOUND;
+  if(btnSound) btnSound.innerHTML = html;
+  if(btnSoundGame) btnSoundGame.innerHTML = html;
 }
-refreshSoundIcon();
-btnSound.addEventListener('click', ()=>{ Sound.toggle(); refreshSoundIcon(); });
+refreshSoundIcons();
+if(btnSound) btnSound.addEventListener('click', ()=>{ Sound.toggle(); refreshSoundIcons(); });
+if(btnSoundGame) btnSoundGame.addEventListener('click', ()=>{ Sound.toggle(); refreshSoundIcons(); });
 
+/* ---------------------------------------------------------------------
+   Best score persistence
+--------------------------------------------------------------------- */
+const BEST_KEY = 'gleam_best_score';
+function getBest(){ return parseInt(localStorage.getItem(BEST_KEY)||'0', 10); }
+function setBestIfHigher(score){
+  const best = getBest();
+  if(score > best){ localStorage.setItem(BEST_KEY, String(score)); return true; }
+  return false;
+}
+function refreshBestScoreDisplay(){
+  if(bestScoreVal) bestScoreVal.textContent = faDigits(getBest());
+}
+refreshBestScoreDisplay();
+
+/* ---------------------------------------------------------------------
+   Difficulty selection
+--------------------------------------------------------------------- */
 let difficulty = 'normal';
 document.querySelectorAll('.diff-chip').forEach(chip=>{
   chip.addEventListener('click', ()=>{
@@ -562,26 +613,78 @@ let mode = 1;
 let rafId = null;
 let lastTime = null;
 let paused = false;
+let playerUnitsRefs = [];
+let hintDismissed = false;
 
 function showScreen(el){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   el.classList.add('active');
 }
 
-function fitCellSizeForCount(n){
-  const vw = Math.min(window.innerWidth, 1180);
-  const vh = window.innerHeight;
-  const gap = 22*(n-1);
-  const maxWByWidth = (vw - 60 - gap) / n / COLS;
-  const maxHByHeight = (vh - 280) / ROWS;
-  let size = Math.floor(Math.min(maxWByWidth, maxHByHeight, 40));
-  return Math.max(size, 20);
+/* ---------------------------------------------------------------------
+   Responsive board sizing — measured from actual rendered DOM,
+   so the play-field always fills available space edge-to-edge.
+--------------------------------------------------------------------- */
+function layoutBoards(){
+  if(playerUnitsRefs.length===0) return null;
+  const n = playerUnitsRefs.length;
+  const wrapRect = boardsWrap.getBoundingClientRect();
+  if(wrapRect.width<=0 || wrapRect.height<=0) return null;
+
+  const sample = playerUnitsRefs[0];
+  const statH = sample.statBar.offsetHeight;
+  const controlsH = sample.controlsWrap.offsetHeight; // 0 when hidden (desktop)
+  const unitStyle = getComputedStyle(sample.unit);
+  const unitGap = parseFloat(unitStyle.rowGap || unitStyle.gap) || 8;
+  const gapsCount = controlsH>0 ? 2 : 1;
+  const framePad = 9*2;
+  const wrapGap = 20;
+
+  const availW = wrapRect.width - wrapGap*(n-1);
+  const perW = availW/n;
+  const availH = wrapRect.height - statH - controlsH - unitGap*gapsCount;
+
+  const cellW = (perW - framePad)/COLS;
+  const cellH = (availH - framePad)/ROWS;
+  let cellSize = Math.floor(Math.min(cellW, cellH));
+  cellSize = Math.max(15, Math.min(cellSize, 46));
+
+  playerUnitsRefs.forEach((u,i)=>{
+    u.canvas.width = COLS*cellSize;
+    u.canvas.height = ROWS*cellSize;
+    if(boards[i]) boards[i].cell = cellSize;
+  });
+  return cellSize;
 }
 
+function checkOrientationHint(){
+  if(!gameScreen.classList.contains('active')){
+    landscapeHint.classList.remove('show');
+    return;
+  }
+  const isPhoneLandscape = window.innerHeight < 480 && window.innerWidth > window.innerHeight;
+  if(isPhoneLandscape && !hintDismissed) landscapeHint.classList.add('show');
+  else landscapeHint.classList.remove('show');
+}
+btnDismissHint.addEventListener('click', ()=>{ hintDismissed = true; landscapeHint.classList.remove('show'); });
+
+function handleViewportChange(){
+  if(!gameScreen.classList.contains('active')) return;
+  layoutBoards();
+  checkOrientationHint();
+}
+window.addEventListener('resize', handleViewportChange);
+window.addEventListener('orientationchange', ()=>{ hintDismissed = false; setTimeout(handleViewportChange, 250); });
+if(window.visualViewport){
+  window.visualViewport.addEventListener('resize', handleViewportChange);
+}
+
+/* ---------------------------------------------------------------------
+   Building per-player DOM (stat bar, board, touch controls)
+--------------------------------------------------------------------- */
 function buildBoardsUI(numPlayers){
   boardsWrap.innerHTML = '';
-  mobileControls.innerHTML = '';
-  const cellSize = fitCellSizeForCount(numPlayers);
+  playerUnitsRefs = [];
   const units = [];
 
   for(let p=0;p<numPlayers;p++){
@@ -603,8 +706,8 @@ function buildBoardsUI(numPlayers){
     frame.className = 'board-frame';
     const canvas = document.createElement('canvas');
     canvas.className = 'board-canvas';
-    canvas.width = COLS*cellSize;
-    canvas.height = ROWS*cellSize;
+    canvas.width = COLS*28;
+    canvas.height = ROWS*28;
     frame.appendChild(canvas);
 
     const overlay = document.createElement('div');
@@ -613,11 +716,9 @@ function buildBoardsUI(numPlayers){
     frame.appendChild(overlay);
 
     unit.appendChild(frame);
-    boardsWrap.appendChild(unit);
-    units.push({unit, frame, canvas, overlay, statBar});
-  }
 
-  units.forEach((u,p)=>{
+    const controlsWrap = document.createElement('div');
+    controlsWrap.className = 'board-controls';
     const group = document.createElement('div');
     group.className='mc-group';
     const mk=(label,row,col)=>{const b=document.createElement('div'); b.className='mc-btn'; b.style.gridRow=row; b.style.gridColumn=col; b.textContent=label; return b;};
@@ -627,7 +728,14 @@ function buildBoardsUI(numPlayers){
     const rightBtn = mk('→',2,3);
     const hardBtn = mk('⤓',1,1);
     group.appendChild(rotateBtn); group.appendChild(leftBtn); group.appendChild(dropBtn); group.appendChild(rightBtn); group.appendChild(hardBtn);
-    mobileControls.appendChild(group);
+    controlsWrap.appendChild(group);
+    unit.appendChild(controlsWrap);
+
+    boardsWrap.appendChild(unit);
+
+    const ref = {unit, frame, canvas, overlay, statBar, controlsWrap};
+    units.push(ref);
+    playerUnitsRefs.push(ref);
 
     const bind = (el, downFn, upFn)=>{
       el.addEventListener('touchstart', e=>{e.preventDefault(); Sound.ensure(); downFn();});
@@ -641,7 +749,7 @@ function buildBoardsUI(numPlayers){
     bind(rotateBtn, ()=>controllerAction(p,'rotate'));
     bind(hardBtn, ()=>controllerAction(p,'hard'));
     bind(dropBtn, ()=>controllerAction(p,'softOn'), ()=>controllerAction(p,'softOff'));
-  });
+  }
 
   return units;
 }
@@ -657,11 +765,32 @@ function renderNextPreview(container, colors){
   });
 }
 
+function bump(el, text){
+  el.textContent = text;
+  el.classList.remove('bump');
+  void el.offsetWidth;
+  el.classList.add('bump');
+}
+
+function spawnComboToast(frameEl, chain, points){
+  const el = document.createElement('div');
+  el.className = 'combo-toast';
+  el.innerHTML = `×${chain} COMBO<span class="pts">+${points}</span>`;
+  frameEl.appendChild(el);
+  setTimeout(()=>el.remove(), 950);
+}
+
+/* ---------------------------------------------------------------------
+   Game lifecycle
+--------------------------------------------------------------------- */
 function startGame(numPlayers){
   Sound.ensure();
   mode = numPlayers;
+  document.body.classList.add('playing');
   showScreen(gameScreen);
+
   const units = buildBoardsUI(numPlayers);
+  const cellSize = layoutBoards() || 28;
   boards = [];
 
   units.forEach((u,i)=>{
@@ -671,15 +800,16 @@ function startGame(numPlayers){
       frameEl:u.frame,
       difficulty,
       onScoreChange:()=>{
-        u.statBar.querySelector('.score-val').textContent = board.score;
-        u.statBar.querySelector('.level-val').textContent = board.level;
-        u.statBar.querySelector('.jewel-val').textContent = board.jewels;
+        bump(u.statBar.querySelector('.score-val'), board.score);
+        bump(u.statBar.querySelector('.level-val'), board.level);
+        bump(u.statBar.querySelector('.jewel-val'), board.jewels);
       },
       onNextChange:(next)=>{ renderNextPreview(u.statBar.querySelector('.next-dots'), next); },
       onGameOver:()=>{ handleGameOver(i); },
-      onLevelUp:()=>{}
+      onLevelUp:()=>{},
+      onCombo:(chain, pts)=>{ spawnComboToast(u.frame, chain, pts); }
     });
-    board.cell = u.canvas.width/COLS;
+    board.cell = cellSize;
     boards.push(board);
   });
 
@@ -690,17 +820,25 @@ function startGame(numPlayers){
 
   boards.forEach(b=>{ b.onScoreChange(); b.onNextChange(b.next); });
 
-  paused = false;
-  updatePauseLabel();
+  setPaused(false);
   lastTime = null;
   if(rafId) cancelAnimationFrame(rafId);
   rafId = requestAnimationFrame(loop);
+
+  checkOrientationHint();
 }
 
-function updatePauseLabel(){
-  btnPause.innerHTML = paused
-    ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg> ادامه'
-    : '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg> توقف';
+function goToMenu(){
+  if(rafId) cancelAnimationFrame(rafId);
+  document.body.classList.remove('playing');
+  pauseModal.classList.remove('show');
+  landscapeHint.classList.remove('show');
+  if(document.fullscreenElement){
+    (document.exitFullscreen && document.exitFullscreen()) ||
+    (document.webkitExitFullscreen && document.webkitExitFullscreen());
+  }
+  refreshBestScoreDisplay();
+  showScreen(menuScreen);
 }
 
 function handleGameOver(i){
@@ -710,8 +848,9 @@ function handleGameOver(i){
   const sub = overlay.querySelector('.ov-sub');
 
   if(mode===1){
+    const improved = setBestIfHigher(boards[i].score);
     title.textContent = 'بازی تمام شد';
-    sub.textContent = `امتیاز نهایی: ${boards[i].score}`;
+    sub.textContent = improved ? `رکورد جدید! امتیاز: ${boards[i].score}` : `امتیاز نهایی: ${boards[i].score}`;
     overlay.classList.add('show');
   } else {
     const other = boards[1-i];
@@ -720,6 +859,8 @@ function handleGameOver(i){
       sub.textContent = `بازیکن ${2-i} برنده شد`;
       overlay.classList.add('show');
     } else {
+      setBestIfHigher(boards[0].score);
+      setBestIfHigher(boards[1].score);
       const winnerIdx = boards[0].score===boards[1].score ? -1 : (boards[0].score>boards[1].score?0:1);
       boards.forEach((b,idx)=>{
         const ov = units[idx].querySelector('.overlay');
@@ -737,6 +878,9 @@ function handleGameOver(i){
   restartBtn.onclick = ()=> startGame(mode);
 }
 
+/* ---------------------------------------------------------------------
+   Input
+--------------------------------------------------------------------- */
 function controllerAction(playerIdx, action){
   const b = boards[playerIdx];
   if(!b || paused) return;
@@ -759,6 +903,8 @@ function handleKey(e, isDown){
   let used = false;
 
   if(isDown) Sound.ensure();
+
+  if(isDown && key==='Escape'){ setPaused(!paused); used=true; }
 
   if(isDown){
     if(key==='ArrowLeft'){ if(!e.repeat) controllerAction(0,'leftDown'); used=true; }
@@ -791,20 +937,48 @@ function handleKey(e, isDown){
 window.addEventListener('keydown', e=>handleKey(e,true));
 window.addEventListener('keyup', e=>handleKey(e,false));
 
-btnPause.addEventListener('click', ()=>{
-  paused = !paused;
+/* ---------------------------------------------------------------------
+   Pause modal
+--------------------------------------------------------------------- */
+function setPaused(val){
+  paused = val;
   boards.forEach(b=>b.paused=paused);
-  updatePauseLabel();
-});
-
-btnMenu.addEventListener('click', ()=>{
-  if(rafId) cancelAnimationFrame(rafId);
-  showScreen(menuScreen);
-});
+  pauseModal.classList.toggle('show', paused);
+}
+btnPause.addEventListener('click', ()=> setPaused(!paused));
+btnResume.addEventListener('click', ()=> setPaused(false));
+btnRestartPause.addEventListener('click', ()=>{ setPaused(false); startGame(mode); });
+btnMenuPause.addEventListener('click', goToMenu);
+btnMenu.addEventListener('click', goToMenu);
 
 document.getElementById('btn-1p').addEventListener('click', ()=>startGame(1));
 document.getElementById('btn-2p').addEventListener('click', ()=>startGame(2));
 
+/* ---------------------------------------------------------------------
+   Fullscreen
+--------------------------------------------------------------------- */
+function updateFullscreenIcon(){
+  if(!btnFullscreen) return;
+  btnFullscreen.innerHTML = document.fullscreenElement ? ICON_COMPRESS : ICON_EXPAND;
+}
+if(btnFullscreen){
+  btnFullscreen.addEventListener('click', ()=>{
+    if(!document.fullscreenElement){
+      const el = document.documentElement;
+      const req = el.requestFullscreen || el.webkitRequestFullscreen;
+      if(req) req.call(el).catch(()=>{});
+    } else {
+      const exit = document.exitFullscreen || document.webkitExitFullscreen;
+      if(exit) exit.call(document).catch?.(()=>{});
+    }
+  });
+}
+document.addEventListener('fullscreenchange', updateFullscreenIcon);
+document.addEventListener('webkitfullscreenchange', updateFullscreenIcon);
+
+/* ---------------------------------------------------------------------
+   Main loop
+--------------------------------------------------------------------- */
 function loop(ts){
   rafId = requestAnimationFrame(loop);
   if(lastTime===null) lastTime = ts;
@@ -818,16 +992,6 @@ function loop(ts){
   });
 }
 
-window.addEventListener('resize', ()=>{
-  if(!gameScreen.classList.contains('active')) return;
-  const cellSize = fitCellSizeForCount(boards.length);
-  document.querySelectorAll('.board-canvas').forEach((canvas,i)=>{
-    canvas.width = COLS*cellSize;
-    canvas.height = ROWS*cellSize;
-    boards[i].cell = cellSize;
-  });
-});
-
 /* ---------------------------------------------------------------------
    PWA — install prompt + service worker registration
 --------------------------------------------------------------------- */
@@ -838,19 +1002,21 @@ const btnInstall = document.getElementById('btn-install');
 window.addEventListener('beforeinstallprompt', (e)=>{
   e.preventDefault();
   deferredInstallPrompt = e;
-  installBanner.classList.add('show');
+  if(installBanner) installBanner.classList.add('show');
 });
 
-btnInstall.addEventListener('click', async ()=>{
-  if(!deferredInstallPrompt) return;
-  deferredInstallPrompt.prompt();
-  await deferredInstallPrompt.userChoice;
-  deferredInstallPrompt = null;
-  installBanner.classList.remove('show');
-});
+if(btnInstall){
+  btnInstall.addEventListener('click', async ()=>{
+    if(!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    installBanner.classList.remove('show');
+  });
+}
 
 window.addEventListener('appinstalled', ()=>{
-  installBanner.classList.remove('show');
+  if(installBanner) installBanner.classList.remove('show');
 });
 
 if('serviceWorker' in navigator){
